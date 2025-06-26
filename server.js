@@ -3,53 +3,57 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const mongoose = require('mongoose');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+// MongoDB connection
+mongoose.connect('mongodb+srv://nishantroy449:SwaggerRoy69@cluster0.xztkzdx.mongodb.net/wishesDB?retryWrites=true&w=majority&appName=Cluster0', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+}).then(() => console.log('✅ Connected to MongoDB'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
+
+// Wish Schema
+const wishSchema = new mongoose.Schema({
+  name: String,
+  message: String,
+  photo: String,
+  time: { type: Date, default: Date.now },
+});
+
+const Wish = mongoose.model('Wish', wishSchema);
+
+// Middleware
 app.use(cors());
 app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Set up uploads directory
+// Upload config
 const uploadsDir = './public/uploads';
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-// Multer config for handling uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
 });
 const upload = multer({ storage });
 
-// JSON file to store wishes
-const wishesFilePath = './wishes.json';
-if (!fs.existsSync(wishesFilePath)) fs.writeFileSync(wishesFilePath, '[]');
-
-// ✅ Handle form submission
-app.post('/submit', upload.single('photo'), (req, res) => {
+// Submit wish
+app.post('/submit', upload.single('photo'), async (req, res) => {
   const { name, message } = req.body;
   const photo = req.file ? `/uploads/${req.file.filename}` : null;
 
-  const newWish = {
-    id: Date.now(),
-    name,
-    message,
-    photo,
-    time: new Date().toISOString()
-  };
-
-  const existingWishes = JSON.parse(fs.readFileSync(wishesFilePath));
-  existingWishes.push(newWish);
-  fs.writeFileSync(wishesFilePath, JSON.stringify(existingWishes, null, 2));
-
+  const wish = new Wish({ name, message, photo });
+  await wish.save();
   res.redirect('/thank-you.html');
 });
 
-// ✅ Route to view all wishes
-app.get('/wishes', (req, res) => {
-  const wishes = JSON.parse(fs.readFileSync(wishesFilePath));
+// View wishes
+app.get('/wishes', async (req, res) => {
+  const wishes = await Wish.find().sort({ time: -1 });
 
   let html = `
     <html>
@@ -107,7 +111,7 @@ app.get('/wishes', (req, res) => {
       <h1>🎉 Wishes for Mandira 💖</h1>
   `;
 
-  wishes.reverse().forEach(({ id, name, message, photo, time }) => {
+  wishes.forEach(({ _id, name, message, photo, time }) => {
     html += `
       <div class="wish">
         <div class="name">From: ${name}</div>
@@ -117,7 +121,7 @@ app.get('/wishes', (req, res) => {
         <a href="${photo}" download class="download-btn">Download Photo</a>` : ''}
         <div class="controls">
           <button onclick="copyWish('${name.replace(/'/g, "\\'")}', '${message.replace(/'/g, "\\'").replace(/\n/g, "\\n")}')">Copy</button>
-          <button onclick="deleteWish(${id})">Delete</button>
+          <button onclick="deleteWish('${_id}')">Delete</button>
         </div>
       </div>
     `;
@@ -127,20 +131,17 @@ app.get('/wishes', (req, res) => {
   res.send(html);
 });
 
-// ✅ Delete a wish by ID
-app.delete('/delete/:id', (req, res) => {
-  const idToDelete = parseInt(req.params.id);
-  let wishes = JSON.parse(fs.readFileSync(wishesFilePath));
-  const updated = wishes.filter(w => w.id !== idToDelete);
-  fs.writeFileSync(wishesFilePath, JSON.stringify(updated, null, 2));
+// Delete wish
+app.delete('/delete/:id', async (req, res) => {
+  await Wish.findByIdAndDelete(req.params.id);
   res.status(200).send({ success: true });
 });
 
+// Fallback to index.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ✅ Start server
 app.listen(port, () => {
   console.log(`✅ Server running at http://localhost:${port}`);
 });
