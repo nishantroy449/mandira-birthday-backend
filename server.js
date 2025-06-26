@@ -136,6 +136,10 @@ app.delete('/delete/:id', (req, res) => {
   res.status(200).send({ success: true });
 });
 
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // ✅ Start server
 app.listen(port, () => {
   console.log(`✅ Server running at http://localhost:${port}`);
