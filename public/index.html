@@ -62,19 +62,21 @@
     }
 
     button {
-      background: #800000;
-      color: #fff;
-      border: none;
-      padding: 0.8rem;
-      border-radius: 10px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background 0.3s ease;
-    }
+  background: #800000;
+  color: #fff;
+  border: none;
+  padding: 0.8rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
 
-    button:hover {
-      background: #a52a2a;
-    }
+button:hover {
+  background: #a52a2a;
+  transform: scale(1.05);
+}
+
 
     .note {
       font-size: 0.85rem;
@@ -111,7 +113,7 @@
 
     <!-- Hidden inputs -->
     <input type="hidden" name="_captcha" value="false">
-    <input type="hidden" name="_next" value="https://nishantroy.github.io/mandira-birthday/thank-you.html">
+    <input type="hidden" name="_captcha" value="false">
 
     <button type="submit">Send Wish 🎁</button>
     <p class="note">💖 Your message will be displayed with your name and photo on Mandira’s birthday website.</p>
